@@ -1,4 +1,5 @@
 import requests
+import multiprocessing
 from bs4 import BeautifulSoup
 
 # Local module imports
@@ -34,8 +35,35 @@ def getSequential(urls):
     return titles
 
 
-urls = ['https://pdx.edu', 'https://oregonctf.org']
+# Runs getSequential in parallel w/ N (== num_processes) processes.
+@time_decorator
+def getMulti(urls, num_processes):
+    p = multiprocessing.Pool(num_processes)
+    titles = p.map(getUrlTitle, urls)
+    p.close()
+    return titles
+
 
 # Added this so that I could run in PyCharm w/ the play button.
 if __name__ == '__main__':
-    print(f'{getSequential(urls):0.2f}')
+    urls = [
+        'https://pdx.edu',
+        'https://oregonctf.org',
+        'https://google.com',
+        'https://facebook.com',
+        'https://repl.it',
+        'https://youtube.com',
+        'https://wikipedia.org',
+        'https://runescape.com',
+        'https://oldschool.runescape.com/',
+        'https://bumped.com'
+    ]
+
+    run_multi = True
+
+    if run_multi:
+        parallelization = [2, 5, 10]
+        outputs = [f'[N={c}] getMulti time: {getMulti(urls, c):0.2f}' for c in parallelization]
+        print(outputs)
+    else:
+        print(f'{getSequential(urls):0.2f}')
