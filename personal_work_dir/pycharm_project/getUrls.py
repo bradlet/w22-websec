@@ -1,6 +1,8 @@
+import asyncio
 import requests
 import multiprocessing
 import matplotlib.pyplot as plt
+import requests_async
 from bs4 import BeautifulSoup
 
 # Local module imports
@@ -19,6 +21,24 @@ def getUrlTitle(url):
     soup = BeautifulSoup(resp.text, 'html.parser')
     title = str(soup.find('title'))
     return title
+
+
+async def getUrlTitleAsync(url):
+    resp = await requests_async.get(url)
+    title = str(
+        BeautifulSoup(resp.text, 'html.parser').find('title')
+    )
+    return title
+
+
+async def async_main(urls):
+    titles = [getUrlTitleAsync(u) for u in urls]
+    return await asyncio.gather(*titles)
+
+
+@time_decorator
+def getAsync(urls):
+    return asyncio.run(async_main(urls))
 
 
 @time_decorator
@@ -58,10 +78,10 @@ if __name__ == '__main__':
     fetch_urls = True
 
     if fetch_urls:
-        urls = requests\
-            .get('https://thefengs.com/wuchang/courses/cs495/urls.txt')\
-            .text\
-            .split('\n')[:39]
+        urls = requests \
+                   .get('https://thefengs.com/wuchang/courses/cs495/urls.txt') \
+                   .text \
+                   .split('\n')[:39]
     else:
         urls = [
             'https://pdx.edu',
@@ -76,7 +96,8 @@ if __name__ == '__main__':
             'https://bumped.com'
         ]
 
-    run_multi = True
+    run_multi = False
+    run_async = True
 
     if run_multi:
         parallelization = [40, 30, 20, 10, 5, 2]
@@ -84,5 +105,7 @@ if __name__ == '__main__':
         plot(parallelization, results)
         outputs = [f'[N={n}] getMulti time: {time:0.2f}' for n, time in zip(parallelization, results)]
         print(outputs)
+    elif run_async:
+        print(f'Async version: {getAsync(urls):0.2f}')
     else:
         print(f'{getSequential(urls):0.2f}')
