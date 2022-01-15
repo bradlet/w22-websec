@@ -1,6 +1,9 @@
 import requests
 from bs4 import BeautifulSoup
 
+# Local module imports
+from timeDecorator import time_decorator
+
 
 def getUrlTitle(url):
     """
@@ -13,9 +16,10 @@ def getUrlTitle(url):
     resp = requests.get(url)
     soup = BeautifulSoup(resp.text, 'html.parser')
     title = str(soup.find('title'))
-    return (title)
+    return title
 
 
+@time_decorator
 def getSequential(urls):
     """
     Given a list of URLs, retrieve the title for each one using a single synchronous process
@@ -27,11 +31,11 @@ def getSequential(urls):
     titles = []
     for u in urls:
         titles.append(getUrlTitle(u))
-    return (titles)
+    return titles
 
 
 urls = ['https://pdx.edu', 'https://oregonctf.org']
 
 # Added this so that I could run in PyCharm w/ the play button.
 if __name__ == '__main__':
-    print(getSequential(urls))
+    print(f'{getSequential(urls):0.2f}')
