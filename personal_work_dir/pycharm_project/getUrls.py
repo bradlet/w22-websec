@@ -1,5 +1,6 @@
 import requests
 import multiprocessing
+import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 
 # Local module imports
@@ -44,26 +45,44 @@ def getMulti(urls, num_processes):
     return titles
 
 
+def plot(num_processes, run_times):
+    plt.scatter(num_processes, run_times)
+    plt.title("[bradlet2] getMulti Runtimes on fetched URL list")
+    plt.xlabel("Number of Processes")
+    plt.ylabel("Retrieval Time")
+    plt.show()
+
+
 # Added this so that I could run in PyCharm w/ the play button.
 if __name__ == '__main__':
-    urls = [
-        'https://pdx.edu',
-        'https://oregonctf.org',
-        'https://google.com',
-        'https://facebook.com',
-        'https://repl.it',
-        'https://youtube.com',
-        'https://wikipedia.org',
-        'https://runescape.com',
-        'https://oldschool.runescape.com/',
-        'https://bumped.com'
-    ]
+    fetch_urls = True
+
+    if fetch_urls:
+        urls = requests\
+            .get('https://thefengs.com/wuchang/courses/cs495/urls.txt')\
+            .text\
+            .split('\n')[:39]
+    else:
+        urls = [
+            'https://pdx.edu',
+            'https://oregonctf.org',
+            'https://google.com',
+            'https://facebook.com',
+            'https://repl.it',
+            'https://youtube.com',
+            'https://wikipedia.org',
+            'https://runescape.com',
+            'https://oldschool.runescape.com/',
+            'https://bumped.com'
+        ]
 
     run_multi = True
 
     if run_multi:
-        parallelization = [2, 5, 10]
-        outputs = [f'[N={c}] getMulti time: {getMulti(urls, c):0.2f}' for c in parallelization]
+        parallelization = [40, 30, 20, 10, 5, 2]
+        results = [getMulti(urls, n) for n in parallelization]
+        plot(parallelization, results)
+        outputs = [f'[N={n}] getMulti time: {time:0.2f}' for n, time in zip(parallelization, results)]
         print(outputs)
     else:
         print(f'{getSequential(urls):0.2f}')
