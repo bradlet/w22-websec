@@ -7,7 +7,8 @@ custom_id = 'ac791fe71eb35a51c0c8ab15001f0051'
 site = f'{custom_id}.web-security-academy.net'
 login_url = f'''https://{site}/login'''
 
-
+# The target login server resets IP block check upon successful login,
+# so we log in as a user we know every time we try a password on target user.
 def login_wiener():
     logindata = {
         'username': 'wiener',
