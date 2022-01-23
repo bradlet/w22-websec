@@ -17,6 +17,12 @@ def login(uname, pw, csrf_token):
     return response.text
 
 
+# Use BeautifulSoup's html parser to grab the csrf token from some html string
+def parse_tree_for_csrf(text):
+    parser = BeautifulSoup(text, 'html.parser')
+    return parser.find('input', {'name': 'csrf'}).get('value')
+
+
 # Start script
 # ------------------------
 
@@ -33,14 +39,12 @@ except IndexError:  # Specify that this error is thrown b/c of missing CLI arg
 s = requests.Session()
 login_url = f'https://{site}/login'
 resp = s.get(login_url)
-soup = BeautifulSoup(resp.text, 'html.parser')
-csrf = soup.find('input', {'name': 'csrf'}).get('value')
+csrf = parse_tree_for_csrf(resp.text)
 
 # Then: Grab response after successful login to grab the csrf token for interaction with 2fa login page
 #       Note: Only 2 2fa code guesses per login, so we will need to restart every two guess from here.
 response_text = login('carlos', 'montoya', csrf)
-soup = BeautifulSoup(response_text, 'html.parser')
-csrf = soup.find('input', {'name': 'csrf'}).get('value')
+csrf = parse_tree_for_csrf(response_text)
 
 # Send auth request to 2fa endpoint with csrf token and '0000'
 # Here's where we can split multiple processes that will all call a function
