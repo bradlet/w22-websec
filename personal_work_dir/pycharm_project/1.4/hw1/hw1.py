@@ -3,6 +3,15 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 
+# Const that enables / disables noisy prints made throughout program execution.
+DEBUG_MODE = True
+
+
+# Small wrapper for printing based on value of DEBUG_MODE
+def debug_print(text):
+    if DEBUG_MODE:
+        print(text)
+
 
 # Login to user we have credentials for.
 def login(uname, pw, csrf_token):
@@ -11,9 +20,9 @@ def login(uname, pw, csrf_token):
         'username': uname,
         'password': pw
     }
-    print(f'Logging in as carlos:montoya')
+    debug_print(f'Logging in as carlos:montoya')
     response = s.post(login_url, data=login_data)
-    print(f'Login response: {response.text}')
+    debug_print(f'Login response: {response.text}')
     return response.text
 
 
@@ -59,4 +68,4 @@ if resp.status_code == 302:
     print(f'2fa valid with response code {resp.status_code}')
     # Visit account profile page to complete level
 else:
-    print(f'2fa invalid with response code: {resp.status_code}')
+    debug_print(f'2fa invalid with response code: {resp.status_code}')
