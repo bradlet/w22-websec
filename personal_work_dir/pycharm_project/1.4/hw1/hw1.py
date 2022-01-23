@@ -21,9 +21,12 @@ def login(uname, pw, csrf_token):
 # ------------------------
 
 # Pull site info from cli args -- drop https:// if included
-site = sys.argv[1]
-if 'https://' in site:
-    site = site.rstrip('/').lstrip('https://')
+try:
+    site = sys.argv[1]
+    if 'https://' in site:
+        site = site.rstrip('/').lstrip('https://')
+except IndexError:  # Specify that this error is thrown b/c of missing CLI arg
+    raise IndexError("Missing ctf site url in command line arguments.\n")
 
 # First:
 # GET login page to find value of cross-site request forgery token.
