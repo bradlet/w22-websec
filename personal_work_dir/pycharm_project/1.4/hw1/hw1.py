@@ -27,7 +27,7 @@ except IndexError:  # Specify that this error is thrown b/c of missing CLI arg
     raise IndexError("Missing ctf site url in command line arguments.\n")
 # Grab number of procs to run concurrently, or use default value.
 try:
-    num_procs = sys.argv[2]
+    num_procs = int(sys.argv[2])
 except IndexError:
     print("Number of worker processes not specified, defaulting to ", DEFAULT_WORKERS)
     num_procs = DEFAULT_WORKERS
