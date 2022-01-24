@@ -120,7 +120,7 @@ def try_2fa_functional_unit(process_number):
         response = s.post(login2_url, data=login2data, allow_redirects=False)
         status = response.status_code
         if status == 302:
-            debug_print(f'2fa valid with response code {status}')
+            print(f'2fa valid with response code {status}')
         else:
             debug_print(f'2fa invalid with response code: {status}')
 
