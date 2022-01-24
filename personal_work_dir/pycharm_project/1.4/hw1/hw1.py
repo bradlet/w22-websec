@@ -45,7 +45,6 @@ def debug_print(text):
 
 # Use BeautifulSoup's html parser to grab the csrf token from some html string
 def parse_tree_for_csrf(text):
-    print(text)
     parser = BeautifulSoup(text, 'html.parser')
     try:
         return parser.find('input', {'name': 'csrf'}).get('value')
