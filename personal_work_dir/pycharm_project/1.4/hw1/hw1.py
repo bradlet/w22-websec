@@ -43,6 +43,17 @@ def debug_print(text):
         print(text)
 
 
+# Use BeautifulSoup's html parser to grab the csrf token from some html string
+def parse_tree_for_csrf(text):
+    print(text)
+    parser = BeautifulSoup(text, 'html.parser')
+    try:
+        return parser.find('input', {'name': 'csrf'}).get('value')
+    except AttributeError:
+        if 'Gateway Timeout' in text:
+            debug_print("CTF expired; Please restart CTF or else attack script will always fail.")
+
+
 # Grab the csrf token gained from the initial login page for a new session.
 def get_login_page_csrf():
     resp = s.get(login_url)
@@ -60,12 +71,6 @@ def login(uname, pw, csrf_token):
     response = s.post(login_url, data=login_data)
     debug_print(f'Login response: {response.text}')
     return response.text
-
-
-# Use BeautifulSoup's html parser to grab the csrf token from some html string
-def parse_tree_for_csrf(text):
-    parser = BeautifulSoup(text, 'html.parser')
-    return parser.find('input', {'name': 'csrf'}).get('value')
 
 
 # Grab response after successful login to grab the csrf token for interaction with 2fa login page
