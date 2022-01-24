@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 
 # Const that enables / disables noisy prints made throughout program execution.
 DEBUG_MODE = True
+# Default number of worker processes to find 2fa code, if none is provided as argument to program invocation.
+DEFAULT_WORKERS = 10
 
 
 # Small wrapper for printing based on value of DEBUG_MODE
@@ -42,6 +44,12 @@ try:
         site = site.rstrip('/').lstrip('https://')
 except IndexError:  # Specify that this error is thrown b/c of missing CLI arg
     raise IndexError("Missing ctf site url in command line arguments.\n")
+# Grab number of procs to run concurrently, or use default value.
+try:
+    num_procs = sys.argv[2]
+except IndexError:
+    print("Number of worker processes not specified, defaulting to ", DEFAULT_WORKERS)
+    num_procs = DEFAULT_WORKERS
 
 # First:
 # GET login page to find value of cross-site request forgery token.
@@ -67,7 +75,7 @@ csrf = parse_tree_for_csrf(resp.text)
 # STARTING HERE WE NEED TO LOGIN EVERY TWO TIMES
 
 
-def try_2fa_functional_unit():
+def try_2fa_functional_unit(initial_csrf):
     pass
 
 
