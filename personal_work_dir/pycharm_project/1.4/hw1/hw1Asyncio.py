@@ -3,6 +3,8 @@ import asyncio
 import requests_async
 from bs4 import BeautifulSoup
 
+# Note: This is the version that I turned in. As it turns out, 'hw1.py' (multiprocess implementation) also worked.
+
 # Initial credential values that we know in advance
 PROVIDED_USER = 'carlos'
 PROVIDED_PW = 'montoya'
