@@ -5,11 +5,11 @@ Repository for coursework from CS 595 - Web and Cloud Security
 ## Completion
 
 ### Assignments
-- [ ] HW1
-- [ ] HW2
+- [X] HW1
+- [X] HW2
 ### Labs
-- [ ] Lab 1
-- [ ] Lab 2
+- [X] Lab 1
+- [X] Lab 2
 - [ ] Lab 3
 - [ ] Lab 4
 - [ ] Lab 5
