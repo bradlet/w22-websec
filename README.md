@@ -10,8 +10,8 @@ Repository for coursework from CS 595 - Web and Cloud Security
 ### Labs
 - [X] Lab 1
 - [X] Lab 2
-- [ ] Lab 3
-- [ ] Lab 4
-- [ ] Lab 5
+- [X] Lab 3
+- [X] Lab 4
+- [X] Lab 5
 ### Final Project
 - [ ] Project Submission
