@@ -2,10 +2,7 @@
 # CS595 Winter 2022 Final Project
 # https://portswigger.net/web-security/oauth/lab-oauth-forced-oauth-profile-linking
 
-import urllib.parse
 import requests
-from bs4 import BeautifulSoup
-from urllib.parse import urlparse
 
 from Helpers import parseArgsForSite, uploadExploit, searchResponse, checkForSiteLiveness
 
