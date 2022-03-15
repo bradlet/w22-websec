@@ -8,7 +8,7 @@ import re
 
 from Helpers import parseArgsForSite
 
-site = parseArgsForSite()
+site = parseArgsForSite("")
 s = requests.Session()
 
 if __name__ == "__main__":

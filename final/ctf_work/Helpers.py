@@ -1,16 +1,16 @@
 import sys
+import requests
 from bs4 import BeautifulSoup
 
 
 # Pull site info from cli args -- drop https:// if included
-def parseArgsForSite():
-    try:
+def parseArgsForSite(site_if_absent):
+    s = site_if_absent
+    if len(sys.argv) == 2:  # Use cli arg if present
         s = sys.argv[1]
-        if 'https://' in s:
-            s = s.rstrip('/').lstrip('https://')
-        return s
-    except IndexError:
-        raise IndexError("Need to provide site URL when running script")
+    if 'https://' in s:
+        s = s.rstrip('/').lstrip('https://')
+    return s
 
 
 # Wraps the process of grabbing the exploit link and stores the provided `payload`
@@ -29,3 +29,17 @@ def uploadExploit(session, site, payload, action):
     }
     return session.post(exploit_url, data=form_data)
 
+
+# Simple html search in response text
+def searchResponse(resp, search_for):
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    return soup.find(search_for)
+
+
+# Just a helper to make sure that timeouts are clearly communicated, avoiding any
+# mental overhead when already focused on solving some CTF.
+def checkForSiteLiveness(site):
+    resp = requests.get(f'https://{site}')
+    if resp.status_code == 504:
+        print("Site timed out, refresh then try again.")
+        exit()
