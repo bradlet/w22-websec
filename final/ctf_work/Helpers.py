@@ -31,9 +31,9 @@ def uploadExploit(session, site, payload, action):
 
 
 # Simple html search in response text
-def searchResponse(resp, search_for):
+def searchResponse(resp, search_for, optional_attrs=None):
     soup = BeautifulSoup(resp.text, 'html.parser')
-    return soup.find(search_for)
+    return soup.find(search_for, optional_attrs) if optional_attrs else soup.find(search_for)
 
 
 # Just a helper to make sure that timeouts are clearly communicated, avoiding any

