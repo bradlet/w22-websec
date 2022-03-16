@@ -14,4 +14,4 @@ Repository for coursework from CS 595 - Web and Cloud Security
 - [X] Lab 4
 - [X] Lab 5
 ### Final Project
-- [ ] Project Submission
+- [X] Project Submission
